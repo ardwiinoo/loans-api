@@ -1,8 +1,10 @@
 package com.ardwiinoo.loansapi.service.impl;
 
+import com.ardwiinoo.loansapi.exception.AuthenticationError;
 import com.ardwiinoo.loansapi.exception.InvariantError;
 import com.ardwiinoo.loansapi.mapper.UserMapper;
 import com.ardwiinoo.loansapi.model.dto.user.*;
+import com.ardwiinoo.loansapi.model.entity.Authentication;
 import com.ardwiinoo.loansapi.model.entity.User;
 import com.ardwiinoo.loansapi.model.enums.UserRole;
 import com.ardwiinoo.loansapi.repository.AuthenticationRepository;
@@ -71,16 +73,41 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserTokenResponse userLogin(UserLoginRequest request) {
-        return null;
+        validationUtil.validate(request);
+
+        User user = userRepository.findByEmail(request.getEmail()).orElseThrow(
+                () -> new AuthenticationError("Invalid credentials")
+        );
+
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new AuthenticationError("Invalid credentials");
+        }
+
+        if (!user.isEnable()) {
+            throw new AuthenticationError("Please activate your account");
+        }
+
+        String accessToken = jwtService.generateAccessToken(user.getUsername());
+        String refreshToken = jwtService.generateRefreshToken(user.getUsername());
+
+        Authentication authentication = Authentication.builder()
+                .refreshToken(refreshToken)
+                .build();
+
+        authenticationRepository.save(authentication);
+
+        return new UserTokenResponse(
+                accessToken, refreshToken
+        );
     }
 
     @Override
-    public void userLogout(String refreshToken) {
+    public void userLogout(UserRefreshTokenRequest request) {
 
     }
 
     @Override
-    public UserTokenResponse userRenewToken(UserRenewTokenRequest request) {
+    public UserTokenResponse userRenewToken(UserRefreshTokenRequest request) {
         return null;
     }
 }
