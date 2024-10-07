@@ -1,7 +1,9 @@
 package com.ardwiinoo.loansapi.controller;
 
 import com.ardwiinoo.loansapi.model.dto.user.UserDto;
+import com.ardwiinoo.loansapi.model.dto.user.UserLoginRequest;
 import com.ardwiinoo.loansapi.model.dto.user.UserRegisterRequest;
+import com.ardwiinoo.loansapi.model.dto.user.UserTokenResponse;
 import com.ardwiinoo.loansapi.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -31,5 +33,16 @@ public class AuthController {
                         "userId", result.getId()
                 )
         ));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<Map<String, Object>> userLoginHandler(@RequestBody UserLoginRequest request) {
+        UserTokenResponse result = authService.userLogin(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+                "status", "success",
+                "data", result
+                )
+        );
     }
 }
