@@ -2,6 +2,7 @@ package com.ardwiinoo.loansapi.service.impl;
 
 import com.ardwiinoo.loansapi.exception.AuthenticationError;
 import com.ardwiinoo.loansapi.exception.InvariantError;
+import com.ardwiinoo.loansapi.exception.NotFoundError;
 import com.ardwiinoo.loansapi.mapper.UserMapper;
 import com.ardwiinoo.loansapi.model.dto.user.*;
 import com.ardwiinoo.loansapi.model.entity.Authentication;
@@ -103,11 +104,37 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void userLogout(UserRefreshTokenRequest request) {
+        validationUtil.validate(request);
 
+        Authentication authentication = authenticationRepository.findByRefreshToken(request.getRefreshToken()).orElseThrow(
+                () -> new InvariantError("Invalid refresh token")
+        );
+
+        authenticationRepository.delete(authentication);
     }
 
     @Override
     public UserTokenResponse userRenewToken(UserRefreshTokenRequest request) {
-        return null;
+        validationUtil.validate(request);
+
+        Authentication authentication = authenticationRepository.findByRefreshToken(request.getRefreshToken()).orElseThrow(
+                () -> new InvariantError("Invalid refresh token")
+        );
+
+        if (!jwtService.validateRefreshToken(authentication.getRefreshToken())) {
+            throw new InvariantError("Token is expired");
+        }
+
+        String username = jwtService.extractUsernameFromRefreshToken(authentication.getRefreshToken());
+
+        User user = userRepository.findByEmail(username).orElseThrow(
+                () -> new NotFoundError("User not found")
+        );
+
+        String accessToken = jwtService.generateAccessToken(user.getUsername());
+
+        return new UserTokenResponse(
+                accessToken, request.getRefreshToken()
+        );
     }
 }
