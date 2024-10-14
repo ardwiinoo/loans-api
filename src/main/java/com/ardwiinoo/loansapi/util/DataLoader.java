@@ -17,7 +17,7 @@ public class DataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        User user = User.builder()
+        User user1 = User.builder()
                 .email("example@gmail.com")
                 .password("$2a$10$3QZucbjxWFGuOL60Ed7Soe7JX2jbs//l6rCBZAZOuLI2/.Pr5fORq")
                 .firstName("Example")
@@ -27,6 +27,18 @@ public class DataLoader implements CommandLineRunner {
                 .isEnable(true)
                 .build();
 
-        userRepository.save(user);
+        userRepository.save(user1);
+
+        User user2 = User.builder()
+                .email("manager@gmail.com")
+                .password("$2a$10$3QZucbjxWFGuOL60Ed7Soe7JX2jbs//l6rCBZAZOuLI2/.Pr5fORq")
+                .firstName("Manager")
+                .lastName("User")
+                .phoneNumber("083245671664")
+                .userRole(UserRole.MANAGER)
+                .isEnable(true)
+                .build();
+
+        userRepository.save(user2);
     }
 }

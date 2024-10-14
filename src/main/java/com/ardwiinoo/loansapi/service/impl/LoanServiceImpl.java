@@ -1,5 +1,7 @@
 package com.ardwiinoo.loansapi.service.impl;
 
+import com.ardwiinoo.loansapi.exception.InvariantError;
+import com.ardwiinoo.loansapi.exception.NotFoundError;
 import com.ardwiinoo.loansapi.mapper.LoanMapper;
 import com.ardwiinoo.loansapi.mapper.UserMapper;
 import com.ardwiinoo.loansapi.model.dto.loan.LoanAddRequest;
@@ -62,6 +64,49 @@ public class LoanServiceImpl implements LoanService {
 
         loanRepository.save(loan);
 
-        return LoanMapper.MAPPER.toDto(loan);
+        return LoanMapper.MAPPER.toLoanDtoData(loan);
+    }
+
+    @Override
+    public LoanDto getLoanById(Long id) {
+
+        Loan loan = loanRepository.findById(id).orElseThrow(
+                () -> new NotFoundError("Loan not found")
+        );
+
+        return LoanMapper.MAPPER.toLoanDtoData(loan);
+    }
+
+    @Override
+    public List<LoanDto> getAllLoans() {
+
+        List<Loan> loans = loanRepository.findAll();
+
+        List<LoanDto> loansDto = new ArrayList<>();
+        for (Loan loan : loans) {
+            loansDto.add(LoanMapper.MAPPER.toLoanDtoData(loan));
+        }
+
+        return loansDto;
+    }
+
+    @Override
+    public LoanDto approveLoan(Long id) {
+
+        Loan loan = loanRepository.findById(id).orElseThrow(
+                () -> new NotFoundError("Loan not found")
+        );
+
+        if (loan.getApprovedBy() != null) {
+           throw new InvariantError("Loan has been approved");
+        }
+
+        User currentUser = userContextUtil.getCurrentUser();
+
+        loan.setApproveStatus(LoanApproveStatus.APPROVED);
+        loan.setApprovedBy(currentUser);
+        loanRepository.save(loan);
+
+        return LoanMapper.MAPPER.toLoanDtoData(loan);
     }
 }
