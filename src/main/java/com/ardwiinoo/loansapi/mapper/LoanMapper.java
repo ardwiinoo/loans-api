@@ -10,5 +10,5 @@ import org.mapstruct.factory.Mappers;
 public interface LoanMapper {
 
     LoanMapper MAPPER = Mappers.getMapper(LoanMapper.class);
-    LoanDto toDto(Loan loan);
+    LoanDto toLoanDtoData(Loan loan);
 }
