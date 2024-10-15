@@ -1,13 +1,13 @@
 package com.ardwiinoo.loansapi.repository;
 
-import com.ardwiinoo.loansapi.model.entity.Loan;
+import com.ardwiinoo.loansapi.model.entity.Payment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
 @Repository
-public interface LoanRepository extends JpaRepository<Loan, Long> {
+public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    Optional<Loan> findByUserId(long userId);
+    Optional<Payment> findByLoanId(Long loanId);
 }
