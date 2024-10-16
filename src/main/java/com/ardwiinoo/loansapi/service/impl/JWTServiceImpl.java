@@ -92,7 +92,7 @@ public class JWTServiceImpl implements JWTService {
 
     @Override
     public Boolean validateRefreshToken(String refreshToken) {
-        return isTokenExpired(refreshToken, refreshTokenSecret);
+        return !isTokenExpired(refreshToken, refreshTokenSecret);
     }
 
     @Override
