@@ -43,7 +43,7 @@ public class LoanController {
 
     @GetMapping("/detail/{loanId}")
     public ResponseEntity<Map<String, Object>> loanDetailHandler(
-            @RequestParam("loanId") Long loanId
+            @PathVariable("loanId") Long loanId
     ) {
         LoanDto result = loanService.getLoanById(loanId);
 
