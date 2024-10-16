@@ -1,18 +1,12 @@
 package com.ardwiinoo.loansapi.controller;
 
-import com.ardwiinoo.loansapi.model.dto.user.UserDto;
-import com.ardwiinoo.loansapi.model.dto.user.UserLoginRequest;
-import com.ardwiinoo.loansapi.model.dto.user.UserRegisterRequest;
-import com.ardwiinoo.loansapi.model.dto.user.UserTokenResponse;
+import com.ardwiinoo.loansapi.model.dto.user.*;
 import com.ardwiinoo.loansapi.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -44,5 +38,25 @@ public class AuthController {
                 "data", result
                 )
         );
+    }
+
+    @DeleteMapping("/logout")
+    public ResponseEntity<Map<String, Object>> userLogoutHandler(@RequestBody UserRefreshTokenRequest request) {
+        authService.userLogout(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+                "status", "success",
+                "message", "Successfully logged out"
+        ));
+    }
+
+    @PutMapping("/renew")
+    public ResponseEntity<Map<String, Object>> userRenewTokenHandler(@RequestBody UserRefreshTokenRequest request) {
+        UserTokenResponse result = authService.userRenewToken(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+                "status", "success",
+                "data", result
+        ));
     }
 }
