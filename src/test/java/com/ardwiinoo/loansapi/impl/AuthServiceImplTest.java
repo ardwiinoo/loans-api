@@ -3,10 +3,7 @@ package com.ardwiinoo.loansapi.impl;
 import com.ardwiinoo.loansapi.exception.AuthenticationError;
 import com.ardwiinoo.loansapi.exception.InvariantError;
 import com.ardwiinoo.loansapi.mapper.UserMapper;
-import com.ardwiinoo.loansapi.model.dto.user.UserDto;
-import com.ardwiinoo.loansapi.model.dto.user.UserLoginRequest;
-import com.ardwiinoo.loansapi.model.dto.user.UserRegisterRequest;
-import com.ardwiinoo.loansapi.model.dto.user.UserTokenResponse;
+import com.ardwiinoo.loansapi.model.dto.user.*;
 import com.ardwiinoo.loansapi.model.entity.Authentication;
 import com.ardwiinoo.loansapi.model.entity.User;
 import com.ardwiinoo.loansapi.repository.AuthenticationRepository;
@@ -241,5 +238,81 @@ public class AuthServiceImplTest {
         Assertions.assertNotNull(result);
         Assertions.assertEquals("accessToken", result.getAccessToken());
         Assertions.assertEquals("refreshToken", result.getRefreshToken());
+    }
+
+    @Test
+    void userLogout_ShouldThrowInvariantError_WhenValidationFails() {
+        UserRefreshTokenRequest request = UserRefreshTokenRequest
+                .builder()
+                .refreshToken("xxx")
+                .build();
+
+        Mockito.doThrow(new InvariantError("Validation failed")).when(validationUtil).validate(request);
+
+        InvariantError exception = Assertions.assertThrows(InvariantError.class, () -> authService.userLogout(request));
+
+        Assertions.assertEquals("Validation failed", exception.getMessage());
+    }
+
+    @Test
+    void userLogout_ShouldThrowInvariantError_WhenRefreshTokenInvalid() {
+        UserRefreshTokenRequest request = UserRefreshTokenRequest
+                .builder()
+                .refreshToken("xxx")
+                .build();
+
+        Mockito.doThrow(new InvariantError("Invalid refresh token")).when(validationUtil).validate(request);
+
+        InvariantError exception = Assertions.assertThrows(InvariantError.class, () -> authService.userLogout(request));
+
+        Assertions.assertEquals("Invalid refresh token", exception.getMessage());
+    }
+
+    @Test
+    void userLogout_ShouldLogout_WhenRequestIsValid() {
+        UserRefreshTokenRequest request = UserRefreshTokenRequest
+                .builder()
+                .refreshToken("valid refresh token")
+                .build();
+
+        Authentication existingAuthentication = Authentication.builder()
+                .refreshToken("valid refresh token")
+                .build();
+
+        Mockito.when(authenticationRepository.findByRefreshToken(request.getRefreshToken())).thenReturn(Optional.of(existingAuthentication));
+
+        Mockito.doNothing().when(authenticationRepository).delete(ArgumentMatchers.any(Authentication.class));
+
+        authService.userLogout(request);
+
+        Mockito.verify(authenticationRepository, Mockito.times(1)).delete(ArgumentMatchers.any(Authentication.class));
+    }
+
+    @Test
+    void userRenewToken_ShouldThrowInvariantError_WhenValidationFails() {
+        UserRefreshTokenRequest request = UserRefreshTokenRequest
+                .builder()
+                .refreshToken("xxx")
+                .build();
+
+        Mockito.doThrow(new InvariantError("Validation failed")).when(validationUtil).validate(request);
+
+        InvariantError exception = Assertions.assertThrows(InvariantError.class, () -> authService.userRenewToken(request));
+
+        Assertions.assertEquals("Validation failed", exception.getMessage());
+    }
+
+    @Test
+    void userRenewToken_ShouldThrowInvariantError_WhenRefreshTokenInvalid() {
+        UserRefreshTokenRequest request = UserRefreshTokenRequest
+                .builder()
+                .refreshToken("invalid token")
+                .build();
+
+        Mockito.doThrow(new InvariantError("Invalid refresh token")).when(validationUtil).validate(request);
+
+        InvariantError exception = Assertions.assertThrows(InvariantError.class, () -> authService.userRenewToken(request));
+
+        Assertions.assertEquals("Invalid refresh token", exception.getMessage());
     }
 }
