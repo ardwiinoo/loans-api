@@ -7,4 +7,5 @@ public interface AuthService {
     UserTokenResponse userLogin(UserLoginRequest request);
     void userLogout(UserRefreshTokenRequest request);
     UserTokenResponse userRenewToken(UserRefreshTokenRequest request);
+    String userVerify(UserVerifyRequest request);
 }

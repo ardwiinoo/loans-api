@@ -12,6 +12,7 @@ import com.ardwiinoo.loansapi.repository.AuthenticationRepository;
 import com.ardwiinoo.loansapi.repository.UserRepository;
 import com.ardwiinoo.loansapi.service.AuthService;
 import com.ardwiinoo.loansapi.service.JWTService;
+import com.ardwiinoo.loansapi.service.MailService;
 import com.ardwiinoo.loansapi.util.ValidationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private JWTService jwtService;
 
+    @Autowired
+    private MailService mailService;
+
     @Override
     @Transactional
     public UserDto userRegister(UserRegisterRequest request) {
@@ -55,7 +59,7 @@ public class AuthServiceImpl implements AuthService {
 
         User saveUser = User.builder()
                 .email(request.getEmail())
-                .isEnable(true)
+                .isEnable(false)
                 .userRole(UserRole.USER)
                 .password(hashedPassword)
                 .firstName(request.getFirstName())
@@ -68,6 +72,12 @@ public class AuthServiceImpl implements AuthService {
         UserDto userDto =  UserMapper.MAPPER.toUserDto(saveUser);
 
         log.info("User registered: {}", userDto);
+
+        String verificationToken = jwtService.generateRefreshToken(saveUser.getEmail());
+        String verificationUrl = "http://localhost:9000/api/v1/auth/verify?token=" + verificationToken + "&email=" + saveUser.getEmail(); //TODO: arahin url front-end bang
+
+        String emailBody = mailService.buildVerificationEmail(verificationUrl, saveUser.getFirstName());
+        mailService.sendEmail(saveUser.getEmail(), "Account Verification", emailBody);
 
         return userDto;
     }
@@ -136,5 +146,39 @@ public class AuthServiceImpl implements AuthService {
         return new UserTokenResponse(
                 accessToken, request.getRefreshToken()
         );
+    }
+
+    @Override
+    public String userVerify(UserVerifyRequest request) {
+        validationUtil.validate(request);
+
+        if (jwtService.validateRefreshToken(request.getVerificationToken())) {
+            String username = jwtService.extractUsernameFromRefreshToken(request.getVerificationToken());
+
+            User user = userRepository.findByEmail(username).orElseThrow(() -> new NotFoundError("User not found"));
+
+            if (user.isEnable()) {
+                return "User already verified";
+            }
+
+            user.setEnable(true);
+
+            userRepository.save(user);
+            return "OK";
+        } else {
+            User user = userRepository.findByEmail(request.getEmail()).orElseThrow(() -> new NotFoundError("User not found"));
+
+            if (user.isEnable()) {
+                return "User already verified";
+            }
+
+            String verificationToken = jwtService.generateRefreshToken(user.getEmail());
+            String verificationUrl = "http://localhost:9000/api/v1/auth/verify?token=" + verificationToken + "&email=" + user.getEmail(); //TODO: arahin url front-end bang
+
+            String emailBody = mailService.buildVerificationEmail(verificationUrl, user.getFirstName());
+            mailService.sendEmail(user.getEmail(), "Resend Account Verification", emailBody);
+
+            return "Resend verification has been sent";
+        }
     }
 }

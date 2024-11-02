@@ -2,6 +2,7 @@ package com.ardwiinoo.loansapi.controller;
 
 import com.ardwiinoo.loansapi.model.dto.user.*;
 import com.ardwiinoo.loansapi.service.AuthService;
+import org.apache.coyote.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -57,6 +58,24 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.OK).body(Map.of(
                 "status", "success",
                 "data", result
+        ));
+    }
+
+    @GetMapping("/verify")
+    public ResponseEntity<Map<String, Object>> userVerifyHandler(
+            @RequestParam("token") String token,
+            @RequestParam("email") String email
+    ) {
+        UserVerifyRequest request = UserVerifyRequest.builder()
+                .verificationToken(token)
+                .email(email)
+                .build();
+
+        String result = authService.userVerify(request);
+
+        return ResponseEntity.status(HttpStatus.OK).body(Map.of(
+                "status", "success",
+                "message", result
         ));
     }
 }
