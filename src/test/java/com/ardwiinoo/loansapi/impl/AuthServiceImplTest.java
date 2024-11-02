@@ -9,6 +9,7 @@ import com.ardwiinoo.loansapi.model.entity.User;
 import com.ardwiinoo.loansapi.repository.AuthenticationRepository;
 import com.ardwiinoo.loansapi.repository.UserRepository;
 import com.ardwiinoo.loansapi.service.JWTService;
+import com.ardwiinoo.loansapi.service.MailService;
 import com.ardwiinoo.loansapi.service.impl.AuthServiceImpl;
 import com.ardwiinoo.loansapi.util.ValidationUtil;
 import org.junit.jupiter.api.Assertions;
@@ -38,6 +39,9 @@ public class AuthServiceImplTest {
 
     @Mock
     private JWTService jwtService;
+
+    @Mock
+    private MailService mailService;
 
     @BeforeEach
     void setup() {
@@ -105,7 +109,7 @@ public class AuthServiceImplTest {
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .phoneNumber(request.getPhoneNumber())
-                .isEnable(true)
+                .isEnable(false)
                 .build();
 
         Mockito.when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.empty());
@@ -315,4 +319,79 @@ public class AuthServiceImplTest {
 
         Assertions.assertEquals("Invalid refresh token", exception.getMessage());
     }
+
+    @Test
+    void userVerify_ShouldReturnAlreadyVerified_WhenTokenValidAndUserIsEnabled() {
+        UserVerifyRequest request = new UserVerifyRequest("valid-token", "email@example.com");
+
+        Mockito.when(jwtService.validateRefreshToken(request.getVerificationToken())).thenReturn(true);
+        Mockito.when(jwtService.extractUsernameFromRefreshToken(request.getVerificationToken())).thenReturn(request.getEmail());
+
+        User user = new User();
+        user.setEnable(true);
+
+        Mockito.when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(user));
+
+        String result = authService.userVerify(request);
+
+        Assertions.assertEquals("User already verified", result);
+        Mockito.verify(userRepository, Mockito.never()).save(ArgumentMatchers.any(User.class));
+    }
+
+    @Test
+    void userVerify_ShouldActivateUser_WhenTokenValidAndUserIsNotEnabled() {
+        UserVerifyRequest request = new UserVerifyRequest("valid-token", "email@example.com");
+
+        Mockito.when(jwtService.validateRefreshToken(request.getVerificationToken())).thenReturn(true);
+        Mockito.when(jwtService.extractUsernameFromRefreshToken(request.getVerificationToken())).thenReturn(request.getEmail());
+
+        User user = new User();
+        user.setEnable(false);
+
+        Mockito.when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(user));
+
+        String result = authService.userVerify(request);
+
+        Assertions.assertEquals("OK", result);
+        Assertions.assertTrue(user.isEnable());
+        Mockito.verify(userRepository).save(user);
+    }
+
+    @Test
+    void userVerify_ShouldResendVerification_WhenTokenInvalidAndUserIsNotEnabled() {
+        UserVerifyRequest request = new UserVerifyRequest("invalid-token", "email@example.com");
+
+        Mockito.when(jwtService.validateRefreshToken(request.getVerificationToken())).thenReturn(false);
+
+        User user = new User();
+        user.setEnable(false);
+        user.setEmail(request.getEmail());
+        user.setFirstName("John");
+
+        Mockito.when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(user));
+        Mockito.when(jwtService.generateRefreshToken(user.getEmail())).thenReturn("new-token");
+
+        String result = authService.userVerify(request);
+
+        Assertions.assertEquals("Resend verification has been sent", result);
+    }
+
+    @Test
+    void userVerify_ShouldReturnAlreadyVerified_WhenTokenInvalidAndUserIsEnabled() {
+        UserVerifyRequest request = new UserVerifyRequest("invalid-token", "email@example.com");
+
+        Mockito.when(jwtService.validateRefreshToken(request.getVerificationToken())).thenReturn(false);
+
+        User user = new User();
+        user.setEnable(true);
+
+        Mockito.when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(user));
+
+        String result = authService.userVerify(request);
+
+        Assertions.assertEquals("User already verified", result);
+        Mockito.verify(mailService, Mockito.never()).sendEmail(ArgumentMatchers.anyString(), ArgumentMatchers.anyString(), ArgumentMatchers.anyString());
+        Mockito.verify(userRepository, Mockito.never()).save(user);
+    }
+
 }
