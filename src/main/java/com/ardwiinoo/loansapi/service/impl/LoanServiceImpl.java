@@ -13,6 +13,7 @@ import com.ardwiinoo.loansapi.model.enums.LoanApproveStatus;
 import com.ardwiinoo.loansapi.model.enums.LoanStatus;
 import com.ardwiinoo.loansapi.repository.LoanRepository;
 import com.ardwiinoo.loansapi.service.LoanService;
+import com.ardwiinoo.loansapi.util.FileUtil;
 import com.ardwiinoo.loansapi.util.UserContextUtil;
 import com.ardwiinoo.loansapi.util.ValidationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -20,8 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @Slf4j
@@ -36,18 +40,29 @@ public class LoanServiceImpl implements LoanService {
     @Autowired
     private UserContextUtil userContextUtil;
 
+    @Autowired
+    private FileUploadFirebaseService fileUploadFirebaseService;
+
+    @Autowired
+    private FileUtil fileUtil;
+
     @Override
-    public LoanDto addLoan(LoanAddRequest request, MultipartFile[] documents) {
+    public LoanDto addLoan(LoanAddRequest request) {
         validationUtil.validate(request);
 
         User currentUser = userContextUtil.getCurrentUser();
 
-        List<String> docsUrl = new ArrayList<>();
-        if (documents != null) {
-            for (MultipartFile file : documents) {
+        List<String> documentUrls = new ArrayList<>();
 
-                // TODO: konekin ke gcs bang...
-                docsUrl.add("gs://dummy-storage/" + file.getOriginalFilename());
+        if (request.getDocuments() != null) {
+            for (MultipartFile file : request.getDocuments()) {
+                if (!fileUtil.isAllowedFileType(file)) {
+                    throw new InvariantError("File type not allowed");
+                }
+
+                String fileName = UUID.randomUUID() + fileUtil.getFileExtension(Objects.requireNonNull(file.getOriginalFilename()));
+                String url = fileUploadFirebaseService.uploadFile(file, fileName);
+                documentUrls.add(url);
             }
         }
 
@@ -58,7 +73,7 @@ public class LoanServiceImpl implements LoanService {
                 .dueDate(request.getDueDate())
                 .loanStatus(LoanStatus.PENDING)
                 .approveStatus(LoanApproveStatus.PENDING)
-                .documents(docsUrl)
+                .documents(documentUrls)
                 .user(currentUser)
                 .build();
 

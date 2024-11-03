@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -26,14 +27,13 @@ public class LoanController {
 
     @PostMapping(
             value = "/create",
-            consumes = "multipart/form-data"
+            consumes = { MediaType.MULTIPART_FORM_DATA_VALUE }
     )
     @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<Map<String, Object>> loanAddHandler(
-            @RequestPart("data") LoanAddRequest request,
-            @RequestPart("documents") MultipartFile[] documents
+           @ModelAttribute LoanAddRequest request
     ) {
-        LoanDto result = loanService.addLoan(request, documents);
+        LoanDto result = loanService.addLoan(request);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
                 "status", "success",
