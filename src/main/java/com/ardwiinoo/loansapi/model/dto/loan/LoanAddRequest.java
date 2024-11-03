@@ -24,4 +24,6 @@ public class LoanAddRequest {
 
     @NotNull
     private LocalDateTime dueDate;
+
+    private MultipartFile[] documents;
 }
