@@ -7,7 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface LoanService {
-    LoanDto addLoan(LoanAddRequest request, MultipartFile[] documents);
+    LoanDto addLoan(LoanAddRequest request);
     LoanDto getLoanById(Long id);
     List<LoanDto> getAllLoans();
     LoanDto approveLoan(Long id);
