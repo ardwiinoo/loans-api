@@ -60,6 +60,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(request -> request.requestMatchers(
                         "/api/v1/auth/login",
                         "/api/v1/auth/register",
+                        "/api/v1/auth/renew",
                         "/api/v1/auth/verify**",
                         "/swagger-ui/**",
                         "/api-docs/**",
