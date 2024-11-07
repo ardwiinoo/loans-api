@@ -30,6 +30,7 @@ public class AuthController {
         ));
     }
 
+    @CrossOrigin(origins = "*")
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> userLoginHandler(@RequestBody UserLoginRequest request) {
         UserTokenResponse result = authService.userLogin(request);
