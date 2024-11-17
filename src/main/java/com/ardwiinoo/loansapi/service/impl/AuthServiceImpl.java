@@ -16,6 +16,8 @@ import com.ardwiinoo.loansapi.service.MailService;
 import com.ardwiinoo.loansapi.util.ValidationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
     @Autowired
     private AuthenticationRepository authenticationRepository;
@@ -85,6 +90,19 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public UserTokenResponse userLogin(UserLoginRequest request) {
         validationUtil.validate(request);
+
+        try {
+            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
+            org.springframework.security.core.Authentication authentication = authenticationManager.authenticate(authenticationToken);
+
+            if (authentication.isAuthenticated()) {
+                String accessToken = jwtService.generateAccessToken(request.getEmail());
+                String refreshToken = jwtService.generateRefreshToken(request.getEmail());
+                return new UserTokenResponse(accessToken, refreshToken);
+            }
+        } catch (Exception e) {
+            log.error("LDAP login failed due to: ", e);
+        }
 
         User user = userRepository.findByEmail(request.getEmail()).orElseThrow(
                 () -> new AuthenticationError("Invalid credentials")
