@@ -10,7 +10,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class UserLoginRequest {
 
-    @Email
     @NotBlank
     private String email;
 
